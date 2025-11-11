@@ -1,3 +1,4 @@
+````markdown
 # FPL Assistant - Setup & Usage Guide
 
 ## Quick Start
@@ -354,3 +355,5 @@ curl http://localhost:5000/api/recommendations/123456/all
 For issues or feature requests, please open an issue on GitHub.
 
 Enjoy optimizing your FPL transfers! 🚀
+
+````

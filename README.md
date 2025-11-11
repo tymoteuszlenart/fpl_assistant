@@ -109,12 +109,14 @@ Find **5 high-upside players** with:
 
 ## 📚 Documentation
 
-| File | Purpose |
-|------|---------|
-| [FEATURES.md](FEATURES.md) | Detailed feature guide |
-| [SETUP_AND_USAGE.md](SETUP_AND_USAGE.md) | Installation & API endpoints |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture |
-| [UI_GUIDE.md](UI_GUIDE.md) | Visual guide & UI walkthrough |
+📖 **Full documentation in `/docs` folder**
+
+| Category | Files |
+|----------|-------|
+| **Setup** | [Setup Guide](docs/setup/SETUP_AND_USAGE.md) • [TypeScript Compatibility](docs/setup/TYPESCRIPT_CRA_COMPATIBILITY.md) |
+| **API** | [Architecture](docs/api/ARCHITECTURE.md) • [CORS Config](docs/api/CORS_CONFIGURATION.md) • [Photos Fix](docs/api/PHOTOS_FIX.md) |
+| **Features** | [Features Guide](docs/features/FEATURES_GUIDE.md) • [Smart Transfers](docs/features/SMART_TRANSFERS_GUIDE.md) • [UI Guide](docs/features/UI_GUIDE.md) |
+| **Guides** | [Quick Reference](docs/guides/QUICK_REFERENCE.md) • [Testing](docs/guides/TESTING_GUIDE.md) |
 
 ---
 
@@ -151,7 +153,7 @@ GET /api/recommendations/<team_id>/differentials  # 5 differentials
 GET /api/recommendations/<team_id>/all            # Combined
 ```
 
-See [SETUP_AND_USAGE.md](SETUP_AND_USAGE.md) for full API reference.
+See [docs/setup/SETUP_AND_USAGE.md](docs/setup/SETUP_AND_USAGE.md) for full API reference.
 
 ---
 
@@ -304,6 +306,6 @@ MIT License - See LICENSE file
 
 ---
 
-**Questions?** Check [SETUP_AND_USAGE.md](SETUP_AND_USAGE.md) or [FEATURES.md](FEATURES.md)
+**Questions?** Check [docs/setup/SETUP_AND_USAGE.md](docs/setup/SETUP_AND_USAGE.md) or [docs/features/FEATURES_GUIDE.md](docs/features/FEATURES_GUIDE.md)
 
 **Good luck this FPL season! ⚽🏆**

@@ -1,3 +1,4 @@
+````markdown
 # Architecture Overview
 
 ## Project Structure
@@ -10,14 +11,16 @@ fpl_assistant/
 │   │   ├── routes/
 │   │   │   ├── __init__.py
 │   │   │   ├── team_routes.py       # Team analysis endpoints
-│   │   │   └── recommendation_routes.py  # Recommendation endpoints
+│   │   │   ├── recommendation_routes.py  # Recommendation endpoints
+│   │   │   └── photo_routes.py      # Photo proxy endpoint
 │   │   ├── services/
 │   │   │   ├── __init__.py
 │   │   │   ├── team_analyzer.py     # Team analysis logic
-│   │   │   └── recommendation_engine.py  # Recommendation algorithms
+│   │   │   ├── recommendation_engine.py  # Recommendation algorithms
+│   │   │   └── squad_transfer_analyzer.py  # Smart swaps logic
 │   │   └── utils/
 │   │       ├── __init__.py
-│   │       └── fpl_api.py           # FPL API client
+│   │       └── fpl_api.py           # FPL API client with User-Agent
 │   ├── run.py                       # Entry point
 │   ├── requirements.txt             # Python dependencies
 │   └── .env.example                # Environment template
@@ -27,7 +30,7 @@ fpl_assistant/
 │   │   ├── components/
 │   │   │   ├── TeamSearch.tsx       # Team search component
 │   │   │   ├── TeamSearch.css
-│   │   │   ├── TeamAnalysis.tsx     # Analysis display
+│   │   │   ├── TeamAnalysis.tsx     # 5-tab analysis display
 │   │   │   └── TeamAnalysis.css
 │   │   ├── App.tsx                  # Main app component
 │   │   ├── App.css
@@ -38,12 +41,28 @@ fpl_assistant/
 │   ├── package.json
 │   └── tsconfig.json
 │
+├── docs/                            # Documentation
+│   ├── setup/                       # Setup guides
+│   │   ├── SETUP_AND_USAGE.md
+│   │   └── TYPESCRIPT_CRA_COMPATIBILITY.md
+│   ├── api/                         # API documentation
+│   │   ├── ARCHITECTURE.md
+│   │   ├── CORS_CONFIGURATION.md
+│   │   └── PHOTOS_FIX.md
+│   ├── features/                    # Feature guides
+│   │   ├── FEATURES_GUIDE.md
+│   │   ├── SMART_TRANSFERS_GUIDE.md
+│   │   └── UI_GUIDE.md
+│   └── guides/                      # Quick guides
+│       ├── QUICK_REFERENCE.md
+│       └── TESTING_GUIDE.md
+│
 ├── Dockerfile.backend               # Backend container
 ├── Dockerfile.frontend              # Frontend container
 ├── docker-compose.yml               # Multi-container setup
 ├── README.md                        # Main documentation
-├── SETUP_AND_USAGE.md              # Detailed guide
-└── ARCHITECTURE.md                 # This file
+├── quick-start.sh                   # Quick start script
+└── quick-start.bat                  # Windows quick start
 ```
 
 ## Data Flow
@@ -51,25 +70,36 @@ fpl_assistant/
 ```
 User Input (Team ID)
         ↓
-Frontend (React)
+Frontend (React - Port 3000)
         ↓
-API Gateway (Flask)
+API Gateway (Flask - Port 5000) with CORS
         ↓
 TeamAnalyzer Service
-        ├── Fetch Team Data (FPL API)
-        ├── Fetch Squad Picks (FPL API)
-        ├── Fetch Bootstrap Data (FPL API)
+        ├── Fetch Team Data (FPL API + User-Agent)
+        ├── Fetch Squad Picks (FPL API + User-Agent)
+        ├── Fetch Bootstrap Data (FPL API + User-Agent)
         └── Analyze & Structure
         ↓
 RecommendationEngine Service
-        ├── Score Available Players
+        ├── Score Available Players (5 factors)
         ├── Rank by Position
         ├── Identify Differentials
         └── Generate Reasoning
         ↓
-Response JSON
+SquadTransferAnalyzer Service
+        ├── Calculate Urgency Scores
+        ├── Find Underperformers
+        ├── Find Best Replacements
+        └── Generate Smart Swaps
         ↓
-Frontend Display
+Photo Proxy Endpoint
+        ├── Fetch from FPL API
+        ├── Add CORS Headers
+        └── Serve to Frontend
+        ↓
+Response JSON with Photo URLs
+        ↓
+Frontend Display (5 Tabs)
         ↓
 User Decision Making
 ```
@@ -84,15 +114,19 @@ GET /api/team/current-gameweek           → Get current GW
 GET /api/team/<team_id>/summary          → Team overview
 GET /api/team/<team_id>/squad            → Current squad
 GET /api/team/<team_id>/analysis         → Squad analysis
-GET /api/team/<team_id>/detailed-analysis → Full analysis
-GET /api/team/<team_id>/depth            → Position depth
+GET /api/team/<team_id>/squad-overview   → Squad with photos & ratings
 ```
 
 **Recommendations:**
 ```
 GET /api/recommendations/<team_id>/transfers     → 5 per position
-GET /api/recommendations/<team_id>/differentials → 5 differentials
-GET /api/recommendations/<team_id>/all           → All recommendations
+GET /api/recommendations/<team_id>/differentials → 5 differentials (organized by position)
+GET /api/team/<team_id>/smart-swaps              → Smart swaps (max 5 per position)
+```
+
+**Photos (Proxy):**
+```
+GET /api/photos/<player_code>.png   → Player photo from FPL API
 ```
 
 ## Recommendation Algorithm
@@ -119,9 +153,10 @@ Where:
 
 ```
 Differential_Score =
-  (Form × 0.35) +
+  (Form × 0.30) +
   (Ownership_Factor × 0.40) +
-  (Fixture_Factor × 0.25)
+  (Fixture_Factor × 0.20) +
+  (Playing_Time × 0.10)
 
 Requirements:
   - Selected by <15%
@@ -130,16 +165,38 @@ Requirements:
   - Playing time >60 mins recent
 ```
 
+### Smart Swaps (SquadTransferAnalyzer)
+
+```
+Urgency_Score for Current Players =
+  (Not_Playing × 2.0) +
+  (Poor_Form × 1.0) +
+  (Expensive_Low_Form × 0.5)
+
+Then for each underperformer:
+  - Find replacements at same/lower price
+  - Calculate improvement_vs_current
+  - Show top 5 replacements ordered by improvement
+  - Max 5 underperformers per position ordered by urgency
+```
+
 ## External Dependencies
 
 ### FPL Official API
 - **Base URL**: https://fantasy.premierleague.com/api
+- **User-Agent Header**: Required (added to all requests)
 - **Endpoints Used**:
   - `/bootstrap-static/` - Teams, players, positions, gameweeks
   - `/entry/{team_id}/` - Team details
   - `/entry/{team_id}/event/{gameweek}/picks/` - Squad for gameweek
   - `/element/{player_id}/` - Player details
   - `/fixtures/` - All fixtures
+
+### CORS Configuration
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:5000/api/*`
+- Photo endpoint: Explicit CORS headers on all responses
+- Production: Update domain names
 
 ### Rate Limiting
 - No official rate limit published
@@ -163,14 +220,22 @@ Requirements:
    - Balance between form and uniqueness
    - Helps in competitive mini-leagues
 
-4. **Fixture Difficulty Rating (FDR)**
-   - Official FPL metric (1-5 scale)
-   - Next 3-5 gameweeks considered
-   - Major factor in form normalization
+4. **Smart Swaps - Urgency Focused**
+   - Not playing = highest priority for swap
+   - Poor form = high priority
+   - Calculates improvement potential vs current player
+   - Only suggests meaningful upgrades
 
-5. **Microservice Architecture**
-   - TeamAnalyzer focuses on current state
-   - RecommendationEngine focuses on recommendations
+5. **Photo Proxy Endpoint**
+   - Backend proxies images from FPL API
+   - Adds User-Agent header to bypass 403
+   - CORS headers ensure frontend can load images
+   - Future: Can add caching/CDN layer
+
+6. **Microservice Architecture**
+   - TeamAnalyzer: Current squad state
+   - RecommendationEngine: Transfer recommendations
+   - SquadTransferAnalyzer: Smart swaps
    - Easy to add new services (injuries, chip strategy, etc.)
 
 ## Performance Considerations
@@ -178,7 +243,7 @@ Requirements:
 ### Caching
 ```python
 @lru_cache(maxsize=128)
-def get_bootstrap_static()  # Bootstrap data cached for session
+def get_bootstrap_static()  # Bootstrap data cached per session
 ```
 
 ### API Calls per Request
@@ -190,6 +255,7 @@ def get_bootstrap_static()  # Bootstrap data cached for session
 
 ### Response Time
 - Typical: 1-3 seconds (bottleneck is FPL API)
+- Photo loading: Async on frontend
 - Could be optimized with database caching
 - Consider Redis for production
 
@@ -210,12 +276,16 @@ def get_bootstrap_static()  # Bootstrap data cached for session
    - Implement API rate limiting
    - User quotas for free tier
 
-4. **Monitoring**
+4. **Photo CDN**
+   - Cache proxied photos
+   - Serve from CDN for speed
+
+5. **Monitoring**
    - Error tracking (Sentry)
    - Performance monitoring (DataDog)
    - User analytics
 
-5. **Containerization**
+6. **Containerization**
    - Docker images provided
    - Docker Compose for local dev
    - Kubernetes ready
@@ -234,6 +304,7 @@ src/components/__tests__/
 backend/tests/
   ├── test_team_analyzer.py
   ├── test_recommendation_engine.py
+  ├── test_squad_transfer_analyzer.py
   └── test_routes.py
 ```
 
@@ -293,4 +364,6 @@ docker-compose up
 
 ---
 
-See [SETUP_AND_USAGE.md](SETUP_AND_USAGE.md) for installation and usage instructions.
+See [docs/setup/SETUP_AND_USAGE.md](../setup/SETUP_AND_USAGE.md) for installation and usage instructions.
+
+````
