@@ -307,33 +307,43 @@ const TeamAnalysis: React.FC<TeamAnalysisProps> = ({ teamData }) => {
               <p className="loading">Loading recommendations...</p>
             ) : error ? (
               <p className="error">Error: {error}</p>
-            ) : recommendations ? (
+            ) : recommendations && Object.values(recommendations).some(players => players.length > 0) ? (
               <div className="positions-grid">
                 {(['GK', 'DEF', 'MID', 'FWD']).map((position) => (
                   <div key={position} className="position-card">
                     <h3>{position}</h3>
                     <div className="players-list">
-                      {(recommendations[position as keyof Recommendations] || []).map((player: Player) => (
-                        <div key={player.player_id} className="player-item">
-                          {player.photo_url && <img src={player.photo_url} alt={player.name} className="player-photo" style={{ marginBottom: '8px', width: '100%' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
-                          <div className="player-header">
-                            <span className="player-name">{player.name}</span>
-                            <span className="player-score">{player.score.toFixed(1)}</span>
+                      {(recommendations[position as keyof Recommendations] || []).length > 0 ? (
+                        (recommendations[position as keyof Recommendations] || []).map((player: Player) => (
+                          <div key={player.player_id} className="player-item">
+                            {player.photo_url ? (
+                              <img src={player.photo_url} alt={player.name} className="player-photo" />
+                            ) : (
+                              <div className="player-photo" style={{ backgroundColor: '#e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No Photo</div>
+                            )}
+                            <div className="player-header">
+                              <span className="player-name">{player.name}</span>
+                              <span className="player-score">{player.score.toFixed(1)}</span>
+                            </div>
+                            <div className="player-details">
+                              <span className="badge">{player.team}</span>
+                              <span className="price">£{player.price.toFixed(1)}m</span>
+                              <span className="form">Form: {player.form.toFixed(1)}</span>
+                              <span className="ownership">{player.selected_by_percent.toFixed(1)}% owned</span>
+                            </div>
+                            <p className="reason">{player.reason}</p>
                           </div>
-                          <div className="player-details">
-                            <span className="badge">{player.team}</span>
-                            <span className="price">£{player.price.toFixed(1)}m</span>
-                            <span className="form">Form: {player.form.toFixed(1)}</span>
-                            <span className="ownership">{player.selected_by_percent.toFixed(1)}% owned</span>
-                          </div>
-                          <p className="reason">{player.reason}</p>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p style={{ color: '#999', fontStyle: 'italic' }}>No recommendations for {position}</p>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
-            ) : null}
+            ) : (
+              <p className="error">No transfer recommendations available. All positions may be optimal.</p>
+            )}
           </div>
         )}
 
