@@ -151,6 +151,39 @@
   border-left: 4px solid #667eea;
 }
 
+.strategy-section {
+  padding: 28px;
+  border-radius: 14px;
+  background: #f8f9fa;
+}
+
+.strategy-section h3 {
+  color: #31356e;
+  margin: 0 0 16px;
+}
+
+.chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.chip-card {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 10px;
+}
+
+.chip-card.available { background: #e8f5e9; color: #276334; }
+.chip-card.used { background: #eceff1; color: #60717c; }
+
+.alerts-list { display: grid; gap: 10px; }
+.strategy-alert, .no-alerts { margin: 0; padding: 14px; border-radius: 8px; }
+.strategy-alert.warning { background: #fff3e0; color: #9a4c00; border-left: 4px solid #ef8b1d; }
+.strategy-alert.info, .no-alerts { background: #e3f2fd; color: #135f91; border-left: 4px solid #2787c8; }
+
 /* Transfers Section */
 .transfers-section {
   margin-top: 20px;
@@ -1126,4 +1159,3 @@
   margin-top: 5px;
   font-style: italic;
 }
-

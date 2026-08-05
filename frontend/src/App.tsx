@@ -21,6 +21,10 @@ const App: React.FC = () => {
   const handleTeamSelect = async (teamId: number) => {
     setLoading(true);
     try {
+      const trackingResponse = await fetch(`http://localhost:5000/api/tracked-teams/${teamId}/refresh`, {
+        method: 'POST'
+      });
+      if (!trackingResponse.ok) throw new Error('Failed to refresh tracked team');
       const response = await fetch(`http://localhost:5000/api/team/${teamId}/summary`);
       if (!response.ok) throw new Error('Failed to fetch team');
       const data = await response.json();

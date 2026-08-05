@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './TeamAnalysis.css';
 
 interface TeamData {
@@ -91,20 +91,29 @@ interface TeamAnalysisProps {
   teamData: TeamData;
 }
 
+interface StrategyState {
+  used_chips: Array<{ chip_name: string; gameweek: number }>;
+  remaining_chips: Array<{ id: string; name: string; available: boolean }>;
+}
+
+interface StrategyAlert {
+  type: string;
+  severity: 'info' | 'warning';
+  message: string;
+}
+
 const TeamAnalysis: React.FC<TeamAnalysisProps> = ({ teamData }) => {
   const [recommendations, setRecommendations] = useState<Recommendations | null>(null);
   const [differentials, setDifferentials] = useState<Record<string, Differential[]> | Differential[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'squad' | 'transfers' | 'differentials' | 'swaps'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'squad' | 'transfers' | 'differentials' | 'swaps' | 'strategy'>('overview');
   const [squadData, setSquadData] = useState<SquadOverview | null>(null);
   const [swapsData, setSwapsData] = useState<SmartSwaps | null>(null);
+  const [strategy, setStrategy] = useState<StrategyState | null>(null);
+  const [strategyAlerts, setStrategyAlerts] = useState<StrategyAlert[]>([]);
 
-  useEffect(() => {
-    fetchRecommendations();
-  }, [teamData.team_id]);
-
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -127,7 +136,11 @@ const TeamAnalysis: React.FC<TeamAnalysisProps> = ({ teamData }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [teamData.team_id]);
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, [fetchRecommendations]);
 
   const fetchSquadData = async () => {
     try {
@@ -148,6 +161,21 @@ const TeamAnalysis: React.FC<TeamAnalysisProps> = ({ teamData }) => {
       setSwapsData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load swaps');
+    }
+  };
+
+  const fetchStrategy = async () => {
+    try {
+      const [strategyResponse, alertsResponse] = await Promise.all([
+        fetch(`http://localhost:5000/api/v1/tracked-teams/${teamData.team_id}/strategy`),
+        fetch(`http://localhost:5000/api/v1/tracked-teams/${teamData.team_id}/alerts`)
+      ]);
+      if (!strategyResponse.ok || !alertsResponse.ok) throw new Error('Failed to load strategy status');
+      const [strategyData, alertsData] = await Promise.all([strategyResponse.json(), alertsResponse.json()]);
+      setStrategy(strategyData);
+      setStrategyAlerts(alertsData.alerts || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load strategy status');
     }
   };
 
@@ -212,6 +240,12 @@ const TeamAnalysis: React.FC<TeamAnalysisProps> = ({ teamData }) => {
         >
           Differentials
         </button>
+        <button
+          className={`tab-button ${activeTab === 'strategy' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('strategy'); fetchStrategy(); }}
+        >
+          Strategy
+        </button>
       </div>
 
       <div className="tab-content">
@@ -221,6 +255,32 @@ const TeamAnalysis: React.FC<TeamAnalysisProps> = ({ teamData }) => {
             <p>Select "Smart Swaps" to get specific player swap recommendations.</p>
             <p>Select "Best Transfers" to see optimized transfer recommendations per position.</p>
             <p>Select "Differentials" to discover low-ownership players with high potential.</p>
+          </div>
+        )}
+
+        {activeTab === 'strategy' && (
+          <div className="strategy-section">
+            {strategy ? (
+              <>
+                <h3>Chip strategy</h3>
+                <div className="chips-grid">
+                  {strategy.remaining_chips.map((chip) => (
+                    <div key={chip.id} className={`chip-card ${chip.available ? 'available' : 'used'}`}>
+                      <strong>{chip.name}</strong>
+                      <span>{chip.available ? 'Available' : 'Used'}</span>
+                    </div>
+                  ))}
+                </div>
+                <h3>Alerts</h3>
+                {strategyAlerts.length ? (
+                  <div className="alerts-list">
+                    {strategyAlerts.map((alert, index) => (
+                      <p key={`${alert.type}-${index}`} className={`strategy-alert ${alert.severity}`}>{alert.message}</p>
+                    ))}
+                  </div>
+                ) : <p className="no-alerts">No strategy alerts right now.</p>}
+              </>
+            ) : <p className="loading">Loading strategy status...</p>}
           </div>
         )}
 
