@@ -8,6 +8,7 @@ from app.services.projection_engine import build_baseline_projections
 from app.services.tracked_team_store import TrackedTeamStore
 from app.services.transfer_planner import plan_one_transfer
 from app.services.squad_optimizer import optimize_squad
+from app.services.strategy_service import squad_alerts, strategy_state
 from app.utils.fpl_api import FPLAPIClient
 
 
@@ -42,6 +43,26 @@ def latest_projections():
     if not projection_set:
         return jsonify({'error': {'code': 'not_found', 'message': 'No projection set has been generated.', 'retryable': False}}), 404
     return jsonify({'projection_set': projection_set}), 200
+
+
+@planning_bp.route('/tracked-teams/<int:team_id>/strategy', methods=['GET'])
+def get_strategy_state(team_id):
+    used_chips = _store().used_chips(team_id)
+    if used_chips is None:
+        return jsonify({'error': {'code': 'not_found', 'message': 'Tracked team was not found.', 'retryable': False}}), 404
+    return jsonify(strategy_state(used_chips)), 200
+
+
+@planning_bp.route('/tracked-teams/<int:team_id>/alerts', methods=['GET'])
+def get_strategy_alerts(team_id):
+    try:
+        state = _store().latest_squad_state(team_id)
+        if state is None:
+            return jsonify({'error': {'code': 'not_found', 'message': 'Tracked team was not found.', 'retryable': False}}), 404
+        bootstrap = FPLAPIClient.get_bootstrap_static()
+        return jsonify({'alerts': squad_alerts(state['team'], state['snapshot'], state['picks'], bootstrap.get('elements', []))}), 200
+    except Exception as error:
+        return api_error_response(error)
 
 
 def _optimize(payload, budget_tenths):

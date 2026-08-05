@@ -94,6 +94,12 @@ def initialize_database(database_path: str) -> None:
                 components_json TEXT NOT NULL,
                 PRIMARY KEY(projection_set_id, fpl_player_id, gameweek)
             );
+            CREATE TABLE IF NOT EXISTS chip_usage (
+                tracked_team_id INTEGER NOT NULL REFERENCES tracked_teams(id),
+                chip_name TEXT NOT NULL,
+                gameweek INTEGER NOT NULL,
+                PRIMARY KEY(tracked_team_id, chip_name)
+            );
         """)
 
 
@@ -202,6 +208,14 @@ class TrackedTeamStore:
             rows = connection.execute("SELECT fpl_player_id, gameweek, expected_points FROM player_projections WHERE projection_set_id = ?", (projection_set_id,)).fetchall()
         return {(row['fpl_player_id'], row['gameweek']): row['expected_points'] for row in rows}
 
+    def used_chips(self, fpl_team_id: int) -> Optional[List[Dict[str, Any]]]:
+        with _connection(self.database_path) as connection:
+            team = connection.execute('SELECT id FROM tracked_teams WHERE fpl_team_id = ?', (fpl_team_id,)).fetchone()
+            if not team:
+                return None
+            rows = connection.execute('SELECT chip_name, gameweek FROM chip_usage WHERE tracked_team_id = ? ORDER BY gameweek', (team['id'],)).fetchall()
+        return [dict(row) for row in rows]
+
     def mark_refresh_failed(self, fpl_team_id: int, season: str, message: str) -> None:
         now = utcnow()
         with _connection(self.database_path) as connection:
@@ -233,6 +247,11 @@ class TrackedTeamStore:
                 gameweek = record.get('event')
                 if isinstance(gameweek, int) and gameweek != current_gameweek:
                     self._upsert_snapshot(connection, tracked_id, season, gameweek, record, now, 'partial', ['Historical picks were not imported.'])
+            for chip in history.get('chips', []):
+                name, gameweek = chip.get('name'), chip.get('event')
+                if isinstance(name, str) and isinstance(gameweek, int):
+                    connection.execute('INSERT OR REPLACE INTO chip_usage (tracked_team_id, chip_name, gameweek) VALUES (?, ?, ?)',
+                                       (tracked_id, name, gameweek))
             current_record = dict(picks_payload.get('entry_history') or {})
             current_record.update({
                 'overall_points': team.get('summary_overall_points'),

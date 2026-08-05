@@ -71,7 +71,7 @@ def test_snapshot_changes_require_two_complete_squad_imports(tmp_path):
 
     changes = client.get("/api/tracked-teams/99/snapshots/3/changes").get_json()
     assert changes == {"available": True, "from_gameweek": 2, "to_gameweek": 3,
-                       "transferred_in": [13], "transferred_out": [11]}
+                       "transferred_in": [13], "transferred_out": [11, 12]}
 
 
 def test_failed_refresh_records_freshness_error(tmp_path):
