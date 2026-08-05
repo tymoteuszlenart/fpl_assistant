@@ -3,6 +3,7 @@
 import hashlib
 import json
 import sqlite3
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping, Optional
@@ -72,6 +73,27 @@ def initialize_database(database_path: str) -> None:
                 selling_price_tenths INTEGER,
                 PRIMARY KEY(snapshot_id, fpl_player_id)
             );
+            CREATE TABLE IF NOT EXISTS projection_sets (
+                id TEXT PRIMARY KEY,
+                season TEXT NOT NULL,
+                generated_at TEXT NOT NULL,
+                model_version TEXT NOT NULL,
+                gameweeks_json TEXT NOT NULL,
+                status TEXT NOT NULL,
+                warnings_json TEXT NOT NULL DEFAULT '[]'
+            );
+            CREATE TABLE IF NOT EXISTS player_projections (
+                projection_set_id TEXT NOT NULL REFERENCES projection_sets(id),
+                fpl_player_id INTEGER NOT NULL,
+                gameweek INTEGER NOT NULL,
+                expected_points REAL NOT NULL,
+                expected_minutes REAL NOT NULL,
+                appearance_probability REAL NOT NULL,
+                risk REAL NOT NULL,
+                fixture_count INTEGER NOT NULL,
+                components_json TEXT NOT NULL,
+                PRIMARY KEY(projection_set_id, fpl_player_id, gameweek)
+            );
         """)
 
 
@@ -132,6 +154,53 @@ class TrackedTeamStore:
             'transferred_in': sorted(current_ids - previous_ids),
             'transferred_out': sorted(previous_ids - current_ids),
         }
+
+    def latest_squad_state(self, fpl_team_id: int) -> Optional[Dict[str, Any]]:
+        """Return the latest complete imported snapshot and its official picks."""
+        with _connection(self.database_path) as connection:
+            team = connection.execute("SELECT * FROM tracked_teams WHERE fpl_team_id = ?", (fpl_team_id,)).fetchone()
+            if not team:
+                return None
+            snapshot = connection.execute("""
+                SELECT * FROM team_snapshots WHERE tracked_team_id = ? AND import_status = 'complete'
+                ORDER BY gameweek DESC LIMIT 1
+            """, (team['id'],)).fetchone()
+            if not snapshot:
+                return {'team': self._team(team), 'snapshot': None, 'picks': []}
+            picks = [dict(row) for row in connection.execute(
+                'SELECT * FROM squad_picks WHERE snapshot_id = ? ORDER BY squad_position', (snapshot['id'],)
+            )]
+        return {'team': self._team(team), 'snapshot': self._snapshot(snapshot), 'picks': picks}
+
+    def save_projection_set(self, season: str, gameweeks: List[int], projections: List[Mapping[str, Any]], warnings: List[str]) -> Dict[str, Any]:
+        projection_set_id, now = str(uuid.uuid4()), utcnow()
+        with _connection(self.database_path) as connection:
+            connection.execute("""
+                INSERT INTO projection_sets (id, season, generated_at, model_version, gameweeks_json, status, warnings_json)
+                VALUES (?, ?, ?, 'baseline-0.1', ?, 'complete', ?)
+            """, (projection_set_id, season, now, json.dumps(gameweeks), json.dumps(warnings)))
+            connection.executemany("""
+                INSERT INTO player_projections (projection_set_id, fpl_player_id, gameweek, expected_points, expected_minutes,
+                    appearance_probability, risk, fixture_count, components_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [(projection_set_id, item['fpl_player_id'], item['gameweek'], item['expected_points'], item['expected_minutes'],
+                     item['appearance_probability'], item['risk'], item['fixture_count'], json.dumps(item['components'])) for item in projections])
+        return self.get_projection_set(projection_set_id)
+
+    def get_projection_set(self, projection_set_id: str) -> Optional[Dict[str, Any]]:
+        with _connection(self.database_path) as connection:
+            row = connection.execute('SELECT * FROM projection_sets WHERE id = ?', (projection_set_id,)).fetchone()
+        return self._projection_set(row) if row else None
+
+    def latest_projection_set(self) -> Optional[Dict[str, Any]]:
+        with _connection(self.database_path) as connection:
+            row = connection.execute('SELECT * FROM projection_sets ORDER BY generated_at DESC LIMIT 1').fetchone()
+        return self._projection_set(row) if row else None
+
+    def projection_values(self, projection_set_id: str) -> Dict[tuple, float]:
+        with _connection(self.database_path) as connection:
+            rows = connection.execute("SELECT fpl_player_id, gameweek, expected_points FROM player_projections WHERE projection_set_id = ?", (projection_set_id,)).fetchall()
+        return {(row['fpl_player_id'], row['gameweek']): row['expected_points'] for row in rows}
 
     def mark_refresh_failed(self, fpl_team_id: int, season: str, message: str) -> None:
         now = utcnow()
@@ -217,3 +286,10 @@ class TrackedTeamStore:
         snapshot = dict(row)
         snapshot['warnings'] = json.loads(snapshot.pop('warnings_json'))
         return snapshot
+
+    @staticmethod
+    def _projection_set(row):
+        value = dict(row)
+        value['gameweeks'] = json.loads(value.pop('gameweeks_json'))
+        value['warnings'] = json.loads(value.pop('warnings_json'))
+        return value

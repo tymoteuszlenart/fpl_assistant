@@ -34,10 +34,11 @@ def create_app(test_config=None):
     initialize_database(app.config['DATABASE'])
     
     # Register blueprints
-    from app.routes import team_bp, recommendations_bp, photos_bp, tracked_teams_bp
+    from app.routes import team_bp, recommendations_bp, photos_bp, tracked_teams_bp, planning_bp
     app.register_blueprint(team_bp)
     app.register_blueprint(recommendations_bp)
     app.register_blueprint(photos_bp)
     app.register_blueprint(tracked_teams_bp)
+    app.register_blueprint(planning_bp)
     
     return app
