@@ -67,6 +67,11 @@ class FPLAPIClient:
     def get_team_picks(team_id: int, gameweek: int) -> Dict:
         """Fetch team picks for a specific gameweek"""
         return _get_json(f"/entry/{team_id}/event/{gameweek}/picks/")
+
+    @staticmethod
+    def get_team_history(team_id: int) -> Dict:
+        """Fetch season and chip history for a public FPL team."""
+        return _get_json(f"/entry/{team_id}/history/")
     
     @staticmethod
     def get_player_data(player_id: int) -> Dict:
