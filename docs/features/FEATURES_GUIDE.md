@@ -259,8 +259,8 @@ Identifies players with:
    - Regular transfers = safer choices
 
 5. **Check Bank Balance**
-   - Smart Swaps account for your budget
-   - All recommendations should be affordable
+   - Smart Swaps use the public bank value as a rough affordability screen.
+   - They do not yet model manager selling prices, transfer hits, or full-squad club-limit legality.
 
 ---
 
@@ -291,10 +291,10 @@ GET /api/recommendations/<team_id>/all
 A: Multiple factors: low form, low value (points per £m), limited minutes, or poor upcoming fixtures.
 
 **Q: Can I trust the Smart Swaps?**
-A: Yes! They're based on current FPL data and smart scoring algorithms, but remember FPL is unpredictable!
+A: Treat them as exploratory player suggestions based on current public FPL data and heuristic scoring. Verify affordability and legality in FPL before transferring.
 
 **Q: What if I can't afford a recommended swap?**
-A: Smart Swaps already account for your bank. If still tight, check the "Transfers" tab for cheaper options.
+A: The current affordability check is approximate. Confirm your selling price, bank, transfer cost, and club limit in FPL before making the move.
 
 **Q: How often should I check?**
 A: Before each gameweek deadline for latest form and fixtures. Also good to check after injuries/news.

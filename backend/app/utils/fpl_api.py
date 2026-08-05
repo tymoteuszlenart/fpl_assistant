@@ -11,6 +11,30 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 }
 
+
+class FPLAPIError(Exception):
+    """The official FPL API could not serve a usable response."""
+
+
+class FPLResourceNotFound(FPLAPIError):
+    """A public FPL resource (such as a team) does not exist."""
+
+
+def _get_json(path: str) -> Dict:
+    """Fetch one official payload with a bounded request time."""
+    try:
+        response = requests.get(
+            f"{FPL_API_BASE}{path}", headers=HEADERS, timeout=10
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.HTTPError as error:
+        if error.response is not None and error.response.status_code == 404:
+            raise FPLResourceNotFound("The requested FPL resource was not found.") from error
+        raise FPLAPIError("The official FPL API returned an error.") from error
+    except (requests.RequestException, ValueError) as error:
+        raise FPLAPIError("The official FPL API is temporarily unavailable.") from error
+
 class FPLAPIClient:
     """Client for interacting with FPL API"""
     
@@ -18,12 +42,7 @@ class FPLAPIClient:
     @lru_cache(maxsize=128)
     def get_bootstrap_static() -> Dict:
         """Fetch static bootstrap data (teams, players, positions, etc.)"""
-        try:
-            response = requests.get(f"{FPL_API_BASE}/bootstrap-static/", headers=HEADERS)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            raise Exception(f"Failed to fetch bootstrap data: {str(e)}")
+        return _get_json("/bootstrap-static/")
     
     @staticmethod
     def get_current_gameweek() -> int:
@@ -42,49 +61,24 @@ class FPLAPIClient:
     @staticmethod
     def get_team_data(team_id: int) -> Dict:
         """Fetch team data by team ID"""
-        try:
-            response = requests.get(f"{FPL_API_BASE}/entry/{team_id}/", headers=HEADERS)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            raise Exception(f"Failed to fetch team {team_id}: {str(e)}")
+        return _get_json(f"/entry/{team_id}/")
     
     @staticmethod
-    def get_team_picks(team_id: int, gameweek: int) -> List[Dict]:
+    def get_team_picks(team_id: int, gameweek: int) -> Dict:
         """Fetch team picks for a specific gameweek"""
-        try:
-            response = requests.get(f"{FPL_API_BASE}/entry/{team_id}/event/{gameweek}/picks/", headers=HEADERS)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            raise Exception(f"Failed to fetch team picks for GW{gameweek}: {str(e)}")
+        return _get_json(f"/entry/{team_id}/event/{gameweek}/picks/")
     
     @staticmethod
     def get_player_data(player_id: int) -> Dict:
         """Fetch detailed player data"""
-        try:
-            response = requests.get(f"{FPL_API_BASE}/element/{player_id}/", headers=HEADERS)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            raise Exception(f"Failed to fetch player {player_id}: {str(e)}")
+        return _get_json(f"/element/{player_id}/")
     
     @staticmethod
     def get_fixtures() -> List[Dict]:
         """Fetch all fixtures"""
-        try:
-            response = requests.get(f"{FPL_API_BASE}/fixtures/", headers=HEADERS)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            raise Exception(f"Failed to fetch fixtures: {str(e)}")
+        return _get_json("/fixtures/")
     
     @staticmethod
     def get_team_fixtures(team_id: int) -> List[Dict]:
         """Fetch fixtures for a specific team"""
-        try:
-            response = requests.get(f"{FPL_API_BASE}/fixtures/?team={team_id}", headers=HEADERS)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            raise Exception(f"Failed to fetch fixtures for team {team_id}: {str(e)}")
+        return _get_json(f"/fixtures/?team={team_id}")

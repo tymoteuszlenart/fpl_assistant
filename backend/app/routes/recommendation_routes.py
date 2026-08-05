@@ -1,6 +1,15 @@
 from flask import request, jsonify
 from . import recommendations_bp
 from app.services.recommendation_engine import RecommendationEngine
+from app.utils.fpl_api import FPLAPIError, FPLResourceNotFound
+
+
+def api_error_response(error):
+    if isinstance(error, FPLResourceNotFound):
+        return jsonify({"error": {"code": "not_found", "message": str(error), "retryable": False}}), 404
+    if isinstance(error, FPLAPIError):
+        return jsonify({"error": {"code": "upstream_unavailable", "message": str(error), "retryable": True}}), 502
+    return jsonify({"error": {"code": "internal_error", "message": "Unexpected server error.", "retryable": False}}), 500
 
 @recommendations_bp.route('/<int:team_id>/transfers', methods=['GET'])
 def get_transfer_recommendations(team_id):
@@ -8,12 +17,22 @@ def get_transfer_recommendations(team_id):
     try:
         engine = RecommendationEngine(team_id)
         recommendations = engine.get_best_transfers_per_position()
+        
+        # Add debug info
+        debug_info = {
+            'team_id': team_id,
+            'positions_with_recommendations': {
+                pos: len(players) for pos, players in recommendations.items()
+            }
+        }
+        
         return jsonify({
             'team_id': team_id,
-            'recommendations': recommendations
+            'recommendations': recommendations,
+            '_debug': debug_info
         }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @recommendations_bp.route('/<int:team_id>/differentials', methods=['GET'])
 def get_differentials(team_id):
@@ -25,8 +44,8 @@ def get_differentials(team_id):
             'team_id': team_id,
             'differentials': differentials
         }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @recommendations_bp.route('/<int:team_id>/all', methods=['GET'])
 def get_all_recommendations(team_id):
@@ -38,5 +57,5 @@ def get_all_recommendations(team_id):
             'team_id': team_id,
             'data': all_recs
         }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)

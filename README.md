@@ -1,13 +1,13 @@
 # FPL Assistant
 
-A comprehensive tool for analyzing Fantasy Premier League teams and recommending optimized transfers.
+A tool for analyzing Fantasy Premier League teams and surfacing heuristic player-transfer suggestions.
 
 ## 🎯 What is FPL Assistant?
 
 **FPL Assistant** helps Fantasy Premier League managers make better transfer decisions by:
 
 ✅ **Analyzing any team** - Just enter Team ID, gameweek fetched automatically  
-✅ **Finding best transfers** - Top 5 options per position (GK, DEF, MID, FWD)  
+✅ **Finding player options** - Top 5 heuristic options per position (GK, DEF, MID, FWD)
 ✅ **Discovering differentials** - 5 low-ownership players with high potential  
 ✅ **Multi-factor scoring** - Considers form, fixtures, value, ownership, playing time  
 ✅ **Real-time data** - Live FPL Official API integration  
@@ -67,7 +67,7 @@ Open **http://localhost:3000** in browser
 
 ### Transfer Recommendations
 
-Get the **best 5 players per position** scored on:
+Get **5 players per position** ranked by a heuristic score:
 
 ```
 Score = (Form × 0.25) + (Value × 0.20) + (Contrarian × 0.15) 
@@ -79,7 +79,7 @@ Score = (Form × 0.25) + (Value × 0.20) + (Contrarian × 0.15)
 - Recent form (0-10)
 - Ownership % (contrarian edge)
 - Expected points & fixture difficulty
-- **AI-calculated score** & reasoning
+- Heuristic score & reasoning (not a full transfer optimizer)
 
 ### Differentials
 
@@ -113,6 +113,7 @@ Find **5 high-upside players** with:
 
 | Category | Files |
 |----------|-------|
+| **Product specs** | [Product](docs/specs/PRODUCT_SPEC.md) • [Optimization](docs/specs/OPTIMIZATION_SPEC.md) • [Data & API](docs/specs/DATA_AND_API_SPEC.md) |
 | **Setup** | [Setup Guide](docs/setup/SETUP_AND_USAGE.md) • [TypeScript Compatibility](docs/setup/TYPESCRIPT_CRA_COMPATIBILITY.md) |
 | **API** | [Architecture](docs/api/ARCHITECTURE.md) • [CORS Config](docs/api/CORS_CONFIGURATION.md) • [Photos Fix](docs/api/PHOTOS_FIX.md) |
 | **Features** | [Features Guide](docs/features/FEATURES_GUIDE.md) • [Smart Transfers](docs/features/SMART_TRANSFERS_GUIDE.md) • [UI Guide](docs/features/UI_GUIDE.md) |

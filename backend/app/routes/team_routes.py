@@ -2,6 +2,7 @@ from flask import request, jsonify
 from . import team_bp
 from app.services.team_analyzer import TeamAnalyzer
 from app.services.squad_transfer_analyzer import SquadTransferAnalyzer
+from app.routes.recommendation_routes import api_error_response
 from app.utils.fpl_api import FPLAPIClient
 
 @team_bp.route('/current-gameweek', methods=['GET'])
@@ -10,8 +11,8 @@ def get_current_gameweek():
     try:
         gameweek = FPLAPIClient.get_current_gameweek()
         return jsonify({'current_gameweek': gameweek}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @team_bp.route('/<int:team_id>/summary', methods=['GET'])
 def get_team_summary(team_id):
@@ -20,8 +21,8 @@ def get_team_summary(team_id):
         analyzer = TeamAnalyzer(team_id)
         summary = analyzer.get_team_summary()
         return jsonify(summary), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @team_bp.route('/<int:team_id>/squad', methods=['GET'])
 def get_team_squad(team_id):
@@ -30,8 +31,8 @@ def get_team_squad(team_id):
         analyzer = TeamAnalyzer(team_id)
         squad = analyzer.get_current_squad()
         return jsonify({'squad': squad}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @team_bp.route('/<int:team_id>/analysis', methods=['GET'])
 def get_team_analysis(team_id):
@@ -40,8 +41,8 @@ def get_team_analysis(team_id):
         analyzer = TeamAnalyzer(team_id)
         analysis = analyzer.analyze_squad_health()
         return jsonify(analysis), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @team_bp.route('/<int:team_id>/detailed-analysis', methods=['GET'])
 def get_detailed_team_analysis(team_id):
@@ -50,8 +51,8 @@ def get_detailed_team_analysis(team_id):
         analyzer = TeamAnalyzer(team_id)
         analysis = analyzer.get_detailed_analysis()
         return jsonify(analysis), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @team_bp.route('/<int:team_id>/depth', methods=['GET'])
 def get_squad_depth(team_id):
@@ -60,8 +61,8 @@ def get_squad_depth(team_id):
         analyzer = TeamAnalyzer(team_id)
         depth = analyzer.analyze_squad_depth()
         return jsonify(depth), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @team_bp.route('/<int:team_id>/transfer-analysis', methods=['GET'])
 def get_squad_transfer_analysis(team_id):
@@ -70,8 +71,8 @@ def get_squad_transfer_analysis(team_id):
         analyzer = SquadTransferAnalyzer(team_id)
         analysis = analyzer.analyze_squad_for_transfers()
         return jsonify(analysis), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @team_bp.route('/<int:team_id>/underperformers', methods=['GET'])
 def get_underperformers(team_id):
@@ -80,8 +81,8 @@ def get_underperformers(team_id):
         analyzer = SquadTransferAnalyzer(team_id)
         underperformers = analyzer._identify_underperformers()
         return jsonify({'underperformers': underperformers}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @team_bp.route('/<int:team_id>/smart-swaps', methods=['GET'])
 def get_smart_swaps(team_id):
@@ -90,8 +91,8 @@ def get_smart_swaps(team_id):
         analyzer = SquadTransferAnalyzer(team_id)
         swaps = analyzer._generate_smart_swaps()
         return jsonify({'smart_swaps': swaps}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)
 
 @team_bp.route('/<int:team_id>/squad-overview', methods=['GET'])
 def get_squad_overview(team_id):
@@ -100,5 +101,5 @@ def get_squad_overview(team_id):
         analyzer = SquadTransferAnalyzer(team_id)
         overview = analyzer.get_squad_overview()
         return jsonify(overview), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as error:
+        return api_error_response(error)

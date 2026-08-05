@@ -21,6 +21,14 @@ fpl_assistant/
 
 ```
 docs/
+├── specs/
+│   ├── PRODUCT_SPEC.md
+│   │   └── Canonical product goals, requirements, journeys, and delivery phases
+│   ├── OPTIMIZATION_SPEC.md
+│   │   └── Squad and transfer optimization rules, objective, and validation
+│   └── DATA_AND_API_SPEC.md
+│       └── Persistence model, import behavior, and versioned API contracts
+│
 ├── setup/
 │   ├── SETUP_AND_USAGE.md
 │   │   └── Full installation guide, API endpoints, troubleshooting
@@ -51,6 +59,12 @@ docs/
 ```
 
 ## File Organization by Category
+
+### Product Specifications
+
+- `docs/specs/PRODUCT_SPEC.md` - Canonical product scope and acceptance criteria
+- `docs/specs/OPTIMIZATION_SPEC.md` - Full-squad and transfer-planning optimization contract
+- `docs/specs/DATA_AND_API_SPEC.md` - Persistent data model and `/api/v1` contracts
 
 ### Setup Documentation
 - `docs/setup/SETUP_AND_USAGE.md` - How to install and use
@@ -169,6 +183,9 @@ root/
 ### "I want to..."
 | Goal | Location |
 |------|----------|
+| **Understand the product direction** | `docs/specs/PRODUCT_SPEC.md` |
+| **Implement squad optimization** | `docs/specs/OPTIMIZATION_SPEC.md` |
+| **Implement tracking and new APIs** | `docs/specs/DATA_AND_API_SPEC.md` |
 | **Set up the project** | `docs/setup/SETUP_AND_USAGE.md` |
 | **Understand the architecture** | `docs/api/ARCHITECTURE.md` |
 | **Learn all features** | `docs/features/FEATURES_GUIDE.md` |
